@@ -15,6 +15,7 @@ next phase begins.
 - Books CRUD API with author data
 - Categories CRUD API
 - Book-category many-to-many relationships
+- Book search, filtering, sorting, and pagination
 
 ### Setup
 
@@ -95,7 +96,7 @@ business rule to coordinate; a pass-through service would add no useful layer.
 
 | Method | Endpoint | Behavior |
 | --- | --- | --- |
-| `GET` | `/api/books` | List books with their authors |
+| `GET` | `/api/books` | Query books with authors and categories |
 | `GET` | `/api/books/:id` | Get one book with its author |
 | `POST` | `/api/books` | Create a book for an existing author |
 | `PATCH` | `/api/books/:id` | Update supplied book fields |
@@ -117,6 +118,49 @@ Book creation and author reassignment pass through `book.service.js`. The
 service verifies that the referenced author exists before the repository writes
 the book. Book reads use a SQL `JOIN` and return an `author` object containing
 the related author's ID and name.
+
+### Querying books
+
+`GET /api/books` supports these query parameters:
+
+| Parameter | Example | Behavior |
+| --- | --- | --- |
+| `search` | `search=node` | Case-insensitive title or ISBN search |
+| `authorId` | `authorId=3` | Filter by author ID |
+| `category` | `category=backend` | Filter by exact category name, ignoring case |
+| `publishedYear` | `publishedYear=2024` | Filter by publication year |
+| `sortBy` | `sortBy=title` | Sort by a whitelisted field |
+| `order` | `order=desc` | Use ascending or descending order |
+| `page` | `page=2` | Select the result page |
+| `limit` | `limit=10` | Set page size, up to 100 |
+
+Allowed `sortBy` values are `id`, `title`, `isbn`, `published_year`, and
+`created_at`. Unsupported values safely fall back to `id` rather than becoming
+part of the SQL query.
+
+Query options can be combined:
+
+```text
+GET /api/books?category=backend&search=node&sortBy=title&order=asc&page=1&limit=10
+```
+
+The list response contains the selected books and pagination metadata:
+
+```json
+{
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "totalItems": 0,
+    "totalPages": 0
+  }
+}
+```
+
+PostgreSQL `LIMIT` controls the page size. `OFFSET` skips rows belonging to
+earlier pages. A separate `COUNT(*)` query calculates `totalItems` and
+`totalPages`.
 
 ## Categories API
 

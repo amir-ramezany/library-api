@@ -13,10 +13,49 @@ const sendRelationshipError = (response, reason) => {
   return response.status(404).json({ message: "Book category not found" });
 };
 
-export const getBooks = async (request, response) => {
-  const books = await bookRepository.findBooks();
+const getQueryString = (value) => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
 
-  response.status(200).json(books);
+  const trimmedValue = value.trim();
+  return trimmedValue || undefined;
+};
+
+const getPositiveInteger = (value, fallback) => {
+  const parsedValue = Number(value);
+
+  if (!Number.isInteger(parsedValue) || parsedValue < 1) {
+    return fallback;
+  }
+
+  return parsedValue;
+};
+
+export const getBooks = async (request, response) => {
+  const page = getPositiveInteger(request.query.page, 1);
+  const limit = Math.min(getPositiveInteger(request.query.limit, 10), 100);
+
+  const result = await bookRepository.findBooks({
+    search: getQueryString(request.query.search),
+    authorId: getQueryString(request.query.authorId),
+    category: getQueryString(request.query.category),
+    publishedYear: getQueryString(request.query.publishedYear),
+    sortBy: getQueryString(request.query.sortBy),
+    order: getQueryString(request.query.order)?.toLowerCase(),
+    page,
+    limit,
+  });
+
+  response.status(200).json({
+    data: result.books,
+    pagination: {
+      page,
+      limit,
+      totalItems: result.totalItems,
+      totalPages: Math.ceil(result.totalItems / limit),
+    },
+  });
 };
 
 export const getBook = async (request, response) => {

@@ -25,18 +25,95 @@ const bookSelection = `
   ) AS categories
 `;
 
-export const findBooks = async () => {
-  const result = await pool.query(`
+const bookSortColumns = new Map([
+  ["id", "b.id"],
+  ["title", "b.title"],
+  ["isbn", "b.isbn"],
+  ["published_year", "b.published_year"],
+  ["created_at", "b.created_at"],
+]);
+
+export const findBooks = async ({
+  search,
+  authorId,
+  category,
+  publishedYear,
+  sortBy,
+  order,
+  page,
+  limit,
+}) => {
+  const conditions = [];
+  const values = [];
+
+  if (search) {
+    values.push(`%${search}%`);
+    conditions.push(
+      `(b.title ILIKE $${values.length} OR b.isbn ILIKE $${values.length})`,
+    );
+  }
+
+  if (authorId) {
+    values.push(authorId);
+    conditions.push(`b.author_id = $${values.length}`);
+  }
+
+  if (category) {
+    values.push(category);
+    conditions.push(`
+      EXISTS (
+        SELECT 1
+        FROM book_categories AS filter_bc
+        JOIN categories AS filter_category
+          ON filter_category.id = filter_bc.category_id
+        WHERE filter_bc.book_id = b.id
+          AND LOWER(filter_category.name) = LOWER($${values.length})
+      )
+    `);
+  }
+
+  if (publishedYear) {
+    values.push(publishedYear);
+    conditions.push(`b.published_year = $${values.length}`);
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*) AS total_items
+     FROM books AS b
+     ${whereClause}`,
+    values,
+  );
+
+  const sortColumn = bookSortColumns.get(sortBy) ?? "b.id";
+  const sortOrder = order === "desc" ? "DESC" : "ASC";
+  const offset = (page - 1) * limit;
+  const queryValues = [...values, limit, offset];
+  const limitPlaceholder = `$${queryValues.length - 1}`;
+  const offsetPlaceholder = `$${queryValues.length}`;
+
+  const result = await pool.query(
+    `
     SELECT ${bookSelection}
     FROM books AS b
     JOIN authors AS a ON a.id = b.author_id
     LEFT JOIN book_categories AS bc ON bc.book_id = b.id
     LEFT JOIN categories AS c ON c.id = bc.category_id
+    ${whereClause}
     GROUP BY b.id, a.id
-    ORDER BY b.id
-  `);
+    ORDER BY ${sortColumn} ${sortOrder} NULLS LAST, b.id ASC
+    LIMIT ${limitPlaceholder}
+    OFFSET ${offsetPlaceholder}
+    `,
+    queryValues,
+  );
 
-  return result.rows;
+  return {
+    books: result.rows,
+    totalItems: Number(countResult.rows[0].total_items),
+  };
 };
 
 export const findBookById = async (id) => {
