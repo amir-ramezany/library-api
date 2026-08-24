@@ -13,6 +13,7 @@ next phase begins.
 - Development seed data
 - Authors CRUD API
 - Books CRUD API with author data
+- Categories CRUD API
 
 ### Setup
 
@@ -115,6 +116,28 @@ Book creation and author reassignment pass through `book.service.js`. The
 service verifies that the referenced author exists before the repository writes
 the book. Book reads use a SQL `JOIN` and return an `author` object containing
 the related author's ID and name.
+
+## Categories API
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| `GET` | `/api/categories` | List all categories |
+| `GET` | `/api/categories/:id` | Get one category |
+| `POST` | `/api/categories` | Create a category |
+| `PATCH` | `/api/categories/:id` | Update a category name |
+| `DELETE` | `/api/categories/:id` | Delete a category |
+
+Example request body:
+
+```json
+{
+  "name": "Science Fiction"
+}
+```
+
+Category names are unique. Category requests use a route, controller, and
+repository; there is no category service because basic CRUD currently has no
+business rule to coordinate.
 
 ## Database
 
