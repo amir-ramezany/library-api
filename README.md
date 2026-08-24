@@ -12,6 +12,7 @@ next phase begins.
 - Reversible migrations for authors and books
 - Development seed data
 - Authors CRUD API
+- Books CRUD API with author data
 
 ### Setup
 
@@ -87,6 +88,33 @@ Example request body:
 Author requests flow from the router to the controller and then to the author
 repository. A separate service is not used yet because basic author CRUD has no
 business rule to coordinate; a pass-through service would add no useful layer.
+
+## Books API
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| `GET` | `/api/books` | List books with their authors |
+| `GET` | `/api/books/:id` | Get one book with its author |
+| `POST` | `/api/books` | Create a book for an existing author |
+| `PATCH` | `/api/books/:id` | Update supplied book fields |
+| `DELETE` | `/api/books/:id` | Delete a book |
+
+Example request body:
+
+```json
+{
+  "title": "Kindred",
+  "isbn": "9780807083697",
+  "description": "A novel combining time travel and historical fiction.",
+  "published_year": 1979,
+  "author_id": 3
+}
+```
+
+Book creation and author reassignment pass through `book.service.js`. The
+service verifies that the referenced author exists before the repository writes
+the book. Book reads use a SQL `JOIN` and return an `author` object containing
+the related author's ID and name.
 
 ## Database
 
