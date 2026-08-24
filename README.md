@@ -11,6 +11,7 @@ next phase begins.
 - PostgreSQL connection pool
 - Reversible migrations for authors and books
 - Development seed data
+- Authors CRUD API
 
 ### Setup
 
@@ -63,6 +64,29 @@ Expected response:
 
 The request enters the Express application in `src/app.js`, is matched to the
 `/api/health` router, and is handled by `src/routes/health.routes.js`.
+
+## Authors API
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| `GET` | `/api/authors` | List all authors |
+| `GET` | `/api/authors/:id` | Get one author |
+| `POST` | `/api/authors` | Create an author |
+| `PATCH` | `/api/authors/:id` | Update supplied author fields |
+| `DELETE` | `/api/authors/:id` | Delete an author |
+
+Example request body:
+
+```json
+{
+  "name": "Octavia E. Butler",
+  "biography": "American science fiction author."
+}
+```
+
+Author requests flow from the router to the controller and then to the author
+repository. A separate service is not used yet because basic author CRUD has no
+business rule to coordinate; a pass-through service would add no useful layer.
 
 ## Database
 
