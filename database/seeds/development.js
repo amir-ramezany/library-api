@@ -58,6 +58,24 @@ try {
     ],
   );
 
+  await client.query(
+    `INSERT INTO categories (name)
+     VALUES ($1), ($2)
+     ON CONFLICT (name) DO NOTHING`,
+    ["Dystopian", "Fantasy"],
+  );
+
+  await client.query(
+    `INSERT INTO book_categories (book_id, category_id)
+     SELECT b.id, c.id
+     FROM books AS b
+     CROSS JOIN categories AS c
+     WHERE (b.isbn = $1 AND c.name = $2)
+        OR (b.isbn = $3 AND c.name = $4)
+     ON CONFLICT (book_id, category_id) DO NOTHING`,
+    ["9780451524935", "Dystopian", "9780547773742", "Fantasy"],
+  );
+
   await client.query("COMMIT");
   console.log("Development data seeded successfully.");
 } catch (error) {

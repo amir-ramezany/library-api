@@ -14,6 +14,7 @@ next phase begins.
 - Authors CRUD API
 - Books CRUD API with author data
 - Categories CRUD API
+- Book-category many-to-many relationships
 
 ### Setup
 
@@ -138,6 +139,27 @@ Example request body:
 Category names are unique. Category requests use a route, controller, and
 repository; there is no category service because basic CRUD currently has no
 business rule to coordinate.
+
+## Book-category relationships
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| `PUT` | `/api/books/:bookId/categories/:categoryId` | Attach a category |
+| `DELETE` | `/api/books/:bookId/categories/:categoryId` | Detach a category |
+
+Attaching a category uses `PUT` because repeating the same request leaves the
+relationship in the same state. A successful `PUT` returns the updated book,
+including its `categories` array. A successful `DELETE` returns status `204`.
+
+The `book_categories` junction table represents the many-to-many relationship:
+
+```text
+books (1) ── (*) book_categories (*) ── (1) categories
+```
+
+Its composite primary key contains `book_id` and `category_id`, preventing the
+same category from being attached to a book more than once. Deleting a book or
+category automatically deletes its junction rows.
 
 ## Database
 

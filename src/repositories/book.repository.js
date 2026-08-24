@@ -12,7 +12,17 @@ const bookSelection = `
   json_build_object(
     'id', a.id,
     'name', a.name
-  ) AS author
+  ) AS author,
+  COALESCE(
+    json_agg(
+      json_build_object(
+        'id', c.id,
+        'name', c.name
+      )
+      ORDER BY c.name, c.id
+    ) FILTER (WHERE c.id IS NOT NULL),
+    '[]'::json
+  ) AS categories
 `;
 
 export const findBooks = async () => {
@@ -20,6 +30,9 @@ export const findBooks = async () => {
     SELECT ${bookSelection}
     FROM books AS b
     JOIN authors AS a ON a.id = b.author_id
+    LEFT JOIN book_categories AS bc ON bc.book_id = b.id
+    LEFT JOIN categories AS c ON c.id = bc.category_id
+    GROUP BY b.id, a.id
     ORDER BY b.id
   `);
 
@@ -31,7 +44,10 @@ export const findBookById = async (id) => {
     `SELECT ${bookSelection}
      FROM books AS b
      JOIN authors AS a ON a.id = b.author_id
-     WHERE b.id = $1`,
+     LEFT JOIN book_categories AS bc ON bc.book_id = b.id
+     LEFT JOIN categories AS c ON c.id = bc.category_id
+     WHERE b.id = $1
+     GROUP BY b.id, a.id`,
     [id],
   );
 
@@ -104,6 +120,25 @@ export const updateBook = async (
 
 export const deleteBook = async (id) => {
   const result = await pool.query("DELETE FROM books WHERE id = $1", [id]);
+
+  return result.rowCount > 0;
+};
+
+export const addCategoryToBook = async (bookId, categoryId) => {
+  await pool.query(
+    `INSERT INTO book_categories (book_id, category_id)
+     VALUES ($1, $2)
+     ON CONFLICT (book_id, category_id) DO NOTHING`,
+    [bookId, categoryId],
+  );
+};
+
+export const removeCategoryFromBook = async (bookId, categoryId) => {
+  const result = await pool.query(
+    `DELETE FROM book_categories
+     WHERE book_id = $1 AND category_id = $2`,
+    [bookId, categoryId],
+  );
 
   return result.rowCount > 0;
 };
