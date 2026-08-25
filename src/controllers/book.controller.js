@@ -2,39 +2,9 @@ import * as bookRepository from "../repositories/book.repository.js";
 import * as bookService from "../services/book.service.js";
 import AppError from "../utils/app-error.js";
 
-const getQueryString = (value) => {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const trimmedValue = value.trim();
-  return trimmedValue || undefined;
-};
-
-const getPositiveInteger = (value, fallback) => {
-  const parsedValue = Number(value);
-
-  if (!Number.isInteger(parsedValue) || parsedValue < 1) {
-    return fallback;
-  }
-
-  return parsedValue;
-};
-
 export const getBooks = async (request, response) => {
-  const page = getPositiveInteger(request.query.page, 1);
-  const limit = Math.min(getPositiveInteger(request.query.limit, 10), 100);
-
-  const result = await bookRepository.findBooks({
-    search: getQueryString(request.query.search),
-    authorId: getQueryString(request.query.authorId),
-    category: getQueryString(request.query.category),
-    publishedYear: getQueryString(request.query.publishedYear),
-    sortBy: getQueryString(request.query.sortBy),
-    order: getQueryString(request.query.order)?.toLowerCase(),
-    page,
-    limit,
-  });
+  const { page, limit } = request.validatedQuery;
+  const result = await bookRepository.findBooks(request.validatedQuery);
 
   response.status(200).json({
     data: result.books,

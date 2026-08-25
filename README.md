@@ -17,6 +17,7 @@ next phase begins.
 - Book-category many-to-many relationships
 - Book search, filtering, sorting, and pagination
 - Centralized API and PostgreSQL error handling
+- Explicit request and query validation
 
 ### Setup
 
@@ -178,6 +179,22 @@ important PostgreSQL constraint errors. Duplicate ISBNs or category names return
 `409`. Invalid database values return `400`, and operations that conflict with
 related records return `409`. Unexpected errors return `500` without exposing
 SQL details or stack traces. Requests to unknown routes return `404`.
+
+## Validation
+
+Validation runs before controllers and returns `400` for invalid requests. It
+covers positive integer IDs, required and unknown fields, schema length limits,
+ISBN-10 and ISBN-13 checksums, publication years, relationship IDs, and all book
+query options.
+
+ISBN values may contain spaces or hyphens when submitted. They are validated and
+stored in a normalized form without separators, preventing differently formatted
+versions of the same ISBN from bypassing the unique constraint.
+
+Book publication years must be between 1 and the current year. `page` and
+`limit` must be positive integers, and `limit` cannot exceed 100. Unsupported
+query parameters, sort fields, and sort orders are rejected instead of silently
+ignored.
 
 ## Categories API
 

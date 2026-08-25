@@ -7,10 +7,21 @@ import {
   getAuthors,
   updateAuthor,
 } from "../controllers/author.controller.js";
+import {
+  validateCreateAuthor,
+  validateUpdateAuthor,
+} from "../validators/author.validator.js";
+import { validateIdParams } from "../validators/common.validator.js";
 
 const authorRouter = Router();
 
-authorRouter.route("/").get(getAuthors).post(createAuthor);
-authorRouter.route("/:id").get(getAuthor).patch(updateAuthor).delete(deleteAuthor);
+authorRouter.route("/").get(getAuthors).post(validateCreateAuthor, createAuthor);
+
+authorRouter
+  .route("/:id")
+  .all(validateIdParams({ id: "Author ID" }))
+  .get(getAuthor)
+  .patch(validateUpdateAuthor, updateAuthor)
+  .delete(deleteAuthor);
 
 export default authorRouter;
