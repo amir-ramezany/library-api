@@ -1,4 +1,5 @@
 import * as authorRepository from "../repositories/author.repository.js";
+import AppError from "../utils/app-error.js";
 
 export const getAuthors = async (request, response) => {
   const authors = await authorRepository.findAuthors();
@@ -10,7 +11,7 @@ export const getAuthor = async (request, response) => {
   const author = await authorRepository.findAuthorById(request.params.id);
 
   if (!author) {
-    return response.status(404).json({ message: "Author not found" });
+    throw new AppError(404, "Author not found");
   }
 
   response.status(200).json(author);
@@ -29,7 +30,7 @@ export const updateAuthor = async (request, response) => {
   );
 
   if (!author) {
-    return response.status(404).json({ message: "Author not found" });
+    throw new AppError(404, "Author not found");
   }
 
   response.status(200).json(author);
@@ -39,7 +40,7 @@ export const deleteAuthor = async (request, response) => {
   const wasDeleted = await authorRepository.deleteAuthor(request.params.id);
 
   if (!wasDeleted) {
-    return response.status(404).json({ message: "Author not found" });
+    throw new AppError(404, "Author not found");
   }
 
   response.status(204).send();

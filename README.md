@@ -16,6 +16,7 @@ next phase begins.
 - Categories CRUD API
 - Book-category many-to-many relationships
 - Book search, filtering, sorting, and pagination
+- Centralized API and PostgreSQL error handling
 
 ### Setup
 
@@ -161,6 +162,22 @@ The list response contains the selected books and pagination metadata:
 PostgreSQL `LIMIT` controls the page size. `OFFSET` skips rows belonging to
 earlier pages. A separate `COUNT(*)` query calculates `totalItems` and
 `totalPages`.
+
+## Error responses
+
+Errors use a consistent response shape:
+
+```json
+{
+  "message": "Description of the problem"
+}
+```
+
+The final error middleware handles application errors, malformed JSON, and
+important PostgreSQL constraint errors. Duplicate ISBNs or category names return
+`409`. Invalid database values return `400`, and operations that conflict with
+related records return `409`. Unexpected errors return `500` without exposing
+SQL details or stack traces. Requests to unknown routes return `404`.
 
 ## Categories API
 

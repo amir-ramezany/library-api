@@ -1,4 +1,5 @@
 import * as categoryRepository from "../repositories/category.repository.js";
+import AppError from "../utils/app-error.js";
 
 export const getCategories = async (request, response) => {
   const categories = await categoryRepository.findCategories();
@@ -10,7 +11,7 @@ export const getCategory = async (request, response) => {
   const category = await categoryRepository.findCategoryById(request.params.id);
 
   if (!category) {
-    return response.status(404).json({ message: "Category not found" });
+    throw new AppError(404, "Category not found");
   }
 
   response.status(200).json(category);
@@ -29,7 +30,7 @@ export const updateCategory = async (request, response) => {
   );
 
   if (!category) {
-    return response.status(404).json({ message: "Category not found" });
+    throw new AppError(404, "Category not found");
   }
 
   response.status(200).json(category);
@@ -39,7 +40,7 @@ export const deleteCategory = async (request, response) => {
   const wasDeleted = await categoryRepository.deleteCategory(request.params.id);
 
   if (!wasDeleted) {
-    return response.status(404).json({ message: "Category not found" });
+    throw new AppError(404, "Category not found");
   }
 
   response.status(204).send();
