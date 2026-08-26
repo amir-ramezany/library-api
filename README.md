@@ -52,6 +52,26 @@ Prerequisites: Node.js 20.11 or newer and PostgreSQL.
 
 For a normal start without file watching, run `npm start`.
 
+### Testing
+
+Run the automated tests once:
+
+```bash
+npm test
+```
+
+Run them in watch mode while editing:
+
+```bash
+npm run test:watch
+```
+
+The test suite uses Node's built-in test runner. It exercises real Express
+routes and application modules while replacing the PostgreSQL pool query method
+with controlled test doubles. It therefore runs without creating or modifying a
+database. Live migration and PostgreSQL integration checks remain manual until a
+dedicated test database is configured.
+
 ### Health check
 
 Send a request to:
