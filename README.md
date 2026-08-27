@@ -281,6 +281,23 @@ The `created_at` and `updated_at` columns initially default to the current time.
 Future update queries must explicitly change `updated_at`; a default value only
 runs when a row is inserted.
 
+### Indexes
+
+The schema adds indexes that match the book query and relationship patterns:
+
+- `books.author_id` speeds up filtering books by author and helps PostgreSQL
+  check references when an author is deleted.
+- `books.published_year` supports the publication-year filter.
+- `book_categories.category_id` supports lookups and cascading deletes from the
+  category side. The junction table's primary key already covers lookups that
+  begin with `book_id`.
+
+Primary keys and unique constraints already provide indexes for IDs, ISBNs,
+category names, and the `(book_id, category_id)` pair, so duplicate indexes are
+not added. The title/ISBN search uses a leading-wildcard `ILIKE` expression,
+which cannot benefit from a normal B-tree index; adding a specialized PostgreSQL
+extension is unnecessary for the current project size.
+
 ### Migrations
 
 Apply all pending migrations:
