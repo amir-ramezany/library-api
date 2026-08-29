@@ -3,29 +3,47 @@ import * as bookRepository from "../repositories/book.repository.js";
 import * as categoryRepository from "../repositories/category.repository.js";
 import AppError from "../utils/app-error.js";
 
-export const createBook = async (bookData) => {
-  const author = await authorRepository.findAuthorById(bookData.author_id);
+const findAuthorOrThrow = async (id) => {
+  const author = await authorRepository.findAuthorById(id);
 
   if (!author) {
     throw new AppError(404, "Author not found");
   }
 
+  return author;
+};
+
+const findBookOrThrow = async (id) => {
+  const book = await bookRepository.findBookById(id);
+
+  if (!book) {
+    throw new AppError(404, "Book not found");
+  }
+
+  return book;
+};
+
+const findCategoryOrThrow = async (id) => {
+  const category = await categoryRepository.findCategoryById(id);
+
+  if (!category) {
+    throw new AppError(404, "Category not found");
+  }
+
+  return category;
+};
+
+export const createBook = async (bookData) => {
+  await findAuthorOrThrow(bookData.author_id);
+
   return bookRepository.createBook(bookData);
 };
 
 export const updateBook = async (id, bookData) => {
-  const existingBook = await bookRepository.findBookById(id);
-
-  if (!existingBook) {
-    throw new AppError(404, "Book not found");
-  }
+  await findBookOrThrow(id);
 
   if (bookData.author_id !== undefined) {
-    const author = await authorRepository.findAuthorById(bookData.author_id);
-
-    if (!author) {
-      throw new AppError(404, "Author not found");
-    }
+    await findAuthorOrThrow(bookData.author_id);
   }
 
   const book = await bookRepository.updateBook(id, bookData);
@@ -38,17 +56,8 @@ export const updateBook = async (id, bookData) => {
 };
 
 export const addCategoryToBook = async (bookId, categoryId) => {
-  const book = await bookRepository.findBookById(bookId);
-
-  if (!book) {
-    throw new AppError(404, "Book not found");
-  }
-
-  const category = await categoryRepository.findCategoryById(categoryId);
-
-  if (!category) {
-    throw new AppError(404, "Category not found");
-  }
+  await findBookOrThrow(bookId);
+  await findCategoryOrThrow(categoryId);
 
   await bookRepository.addCategoryToBook(bookId, categoryId);
 
@@ -56,17 +65,8 @@ export const addCategoryToBook = async (bookId, categoryId) => {
 };
 
 export const removeCategoryFromBook = async (bookId, categoryId) => {
-  const book = await bookRepository.findBookById(bookId);
-
-  if (!book) {
-    throw new AppError(404, "Book not found");
-  }
-
-  const category = await categoryRepository.findCategoryById(categoryId);
-
-  if (!category) {
-    throw new AppError(404, "Category not found");
-  }
+  await findBookOrThrow(bookId);
+  await findCategoryOrThrow(categoryId);
 
   const removed = await bookRepository.removeCategoryFromBook(
     bookId,

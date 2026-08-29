@@ -9,7 +9,7 @@ next phase begins.
 - Express application foundation
 - Health-check endpoint
 - PostgreSQL connection pool
-- Reversible migrations for authors and books
+- Reversible migrations for the complete relational schema
 - Development seed data
 - Authors CRUD API
 - Books CRUD API with author data
@@ -18,8 +18,32 @@ next phase begins.
 - Book search, filtering, sorting, and pagination
 - Centralized API and PostgreSQL error handling
 - Explicit request and query validation
+- Automated tests for core API, validation, service, and repository behavior
+- Query-driven database indexes
 
-### Setup
+## Project structure
+
+Requests follow this path:
+
+```text
+route -> validation -> controller -> service (when needed) -> repository -> PostgreSQL
+```
+
+- `src/routes` defines endpoints and attaches validation middleware.
+- `src/controllers` translates HTTP requests and responses.
+- `src/services` coordinates business rules involving multiple repositories.
+- `src/repositories` owns parameterized SQL and database access.
+- `src/middlewares` provides centralized not-found and error responses.
+- `database/migrations` contains reversible schema changes, while
+  `database/seeds` contains repeatable development data.
+- `test` contains the automated API and module tests.
+
+Authors and categories use controllers and repositories directly because their
+current CRUD operations do not require cross-entity business rules. Book writes
+and category relationships use a service because they must verify related
+records and coordinate multiple repositories.
+
+## Setup
 
 Prerequisites: Node.js 20.11 or newer and PostgreSQL.
 
@@ -52,7 +76,7 @@ Prerequisites: Node.js 20.11 or newer and PostgreSQL.
 
 For a normal start without file watching, run `npm start`.
 
-### Testing
+## Testing
 
 Run the automated tests once:
 
@@ -72,7 +96,7 @@ with controlled test doubles. It therefore runs without creating or modifying a
 database. Live migration and PostgreSQL integration checks remain manual until a
 dedicated test database is configured.
 
-### Health check
+## Health check
 
 Send a request to:
 
@@ -119,7 +143,7 @@ business rule to coordinate; a pass-through service would add no useful layer.
 | Method | Endpoint | Behavior |
 | --- | --- | --- |
 | `GET` | `/api/books` | Query books with authors and categories |
-| `GET` | `/api/books/:id` | Get one book with its author |
+| `GET` | `/api/books/:id` | Get one book with its author and categories |
 | `POST` | `/api/books` | Create a book for an existing author |
 | `PATCH` | `/api/books/:id` | Update supplied book fields |
 | `DELETE` | `/api/books/:id` | Delete a book |
@@ -157,8 +181,9 @@ the related author's ID and name.
 | `limit` | `limit=10` | Set page size, up to 100 |
 
 Allowed `sortBy` values are `id`, `title`, `isbn`, `published_year`, and
-`created_at`. Unsupported values safely fall back to `id` rather than becoming
-part of the SQL query.
+`created_at`. The API rejects unsupported values. The repository also falls
+back to `id` if it is called internally without the validation middleware, so
+untrusted text never becomes part of the SQL query.
 
 Query options can be combined:
 
@@ -278,8 +303,8 @@ books that reference an author that does not exist and prevents an author from
 being deleted while books still reference it. ISBN values are unique.
 
 The `created_at` and `updated_at` columns initially default to the current time.
-Future update queries must explicitly change `updated_at`; a default value only
-runs when a row is inserted.
+Update queries explicitly set `updated_at` to the current time because a column
+default only runs when a row is inserted.
 
 ### Indexes
 
@@ -312,8 +337,10 @@ Roll back the most recently applied migration:
 npm run db:migrate:down
 ```
 
-The first rollback removes `books`. Running the rollback command again removes
-`authors`. This reverse order matters because `books` depends on `authors`.
+Each rollback reverses only the most recently applied migration. Starting from
+the complete schema, repeated rollbacks remove the query indexes, the
+`book_categories` junction table, `categories`, `books`, and finally `authors`.
+This reverse order preserves the schema's foreign-key dependencies.
 
 ### Inspecting the tables
 
@@ -327,8 +354,13 @@ Then inspect the schema:
 
 ```text
 \dt
+\di
 \d authors
 \d books
+\d categories
+\d book_categories
 SELECT * FROM authors;
 SELECT * FROM books;
+SELECT * FROM categories;
+SELECT * FROM book_categories;
 ```
